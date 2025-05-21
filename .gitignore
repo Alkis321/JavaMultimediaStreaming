@@ -1,0 +1,22 @@
+# Maven target folder
+/target/
+/videos/converted
+# IDE directories
+.idea/
+*.iml
+.vscode/
+
+# Compiled Java classes
+*.class
+/bin/
+# Logs
+*.log
+
+# IntelliJ specific
+out/
+
+# Eclipse specific
+.project
+.classpath
+.settings/
+
