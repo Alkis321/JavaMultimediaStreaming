@@ -1,0 +1,45 @@
+# Video Streaming Project - Difficulty Levels Analysis
+
+## 1. Basic Level (Mandatory)
+
+- **Java Sockets**
+  - Server maintains video list (name, format, resolution)
+  - Client requests/receives list
+  - *Challenge:* Socket state management
+
+- **FFmpeg Processing**
+  - Convert to 3 formats (AVI, MP4, MKV) + 5 resolutions
+  - *Challenge:* FFmpeg-Java integration
+
+- **Basic GUI (JavaFX)**
+  - Video list + resolution selector
+  - *Challenge:* Thread-safe UI updates
+
+## 2. Intermediate Level
+
+- **Multi-Client Support**
+  - Thread-per-client model
+  - *Challenge:* Resource synchronization
+
+- **Caching/Buffering**
+  - Pre-load 5-10% of video
+  - *Challenge:* Byte-range requests
+
+- **Protocol Selection**
+  - TCP/UDP/RTP implementations
+  - *Challenge:* UDP packet loss
+
+## 3. Advanced Level
+
+- **Adaptive Streaming**
+  - Dynamic resolution switching
+  - *Challenge:* Mid-stream transitions
+
+- **Load Balancer**
+  - Distribute clients across servers
+  - *Challenge:* Session handoff
+
+- **Recording**
+  - Client-side stream saving
+  - *Challenge:* A/V sync
+  
