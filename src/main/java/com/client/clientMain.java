@@ -227,7 +227,15 @@ public class clientMain extends Application {
 
     private List<String> createFFMpegStreamCommand(String uri){
         List<String> fullCommand = new ArrayList<>(List.of(
-        "ffplay", "-fflags", "+nobuffer", uri
+         "ffplay", "-autoexit",
+        "-fflags", "+nobuffer",
+        "-flags",  "low_delay",
+        "-probesize", "32",
+        "-analyzeduration", "0",
+        "-infbuf", "-framedrop", "-sync", "ext",
+        "-protocol_whitelist", "file,udp,rtp,tcp",
+        "-f", "mpegts",
+        "-i", uri
         ));
 
         return fullCommand;

@@ -17,5 +17,5 @@ public abstract class Config {
       "TCP", 5000,
       "UDP", 5001,
       "RTP/UDP", 5002);
-  public static final int[] BITRATES = {400, 750, 1000, 2500, 4500};
-}
+  public static final String STREAM_SDP_DIR=".videos/stream.sdp"; // Relative path
+  }

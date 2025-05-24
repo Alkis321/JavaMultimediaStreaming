@@ -109,8 +109,15 @@ public class clientHandler implements Runnable {
         } 
         List<String> fullCommand = new ArrayList<>(List.of(
             "ffmpeg", "-re", "-i", Paths.get(Config.CONVERTED_VIDEOS_DIR, video).toString(),
-            "-an", "-c:v", "copy",
-            "-fflags", "+nobuffer",
+            "-c:v", "copy",
+            "-c:a", "aac", "-ac", "2",
+            "-b:a", "96k",
+            "-fflags", "+nobuffer", 
+            "-flush_packets", "1",
+            "-preset", "ultrafast",
+            "-muxdelay", "0.001",
+            "-muxpreload", "0.001",
+            "-tune", "zerolatency",
             "-f", transportStream, uri
         ));
 
