@@ -189,7 +189,7 @@ public class clientMain extends Application {
                         }
 
 
-                    });
+                    }).start();
                 } 
                 sendButton.disableProperty().bind(videoComboBox.valueProperty().isNull());
             } catch (Exception e) {

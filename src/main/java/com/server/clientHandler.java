@@ -55,13 +55,13 @@ public class clientHandler implements Runnable {
                     String uri;
                     switch (protocol) {
                         case "TCP":
-                            uri = "tcp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
+                            uri = "tcp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
                             break;
                         case "UDP":
-                            uri = "udp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
+                            uri = "udp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
                             break;
                         default:
-                            uri = "rtp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
+                            uri = "rtp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
                             break;
                     }
                     List<String> fullCommand = createFFMpegStreamCommand(uri, video, protocol);
@@ -79,7 +79,7 @@ public class clientHandler implements Runnable {
                         }
 
 
-                    });
+                    }).start();
                 }
                 
                 // Echo message back with server acknowledgment
@@ -110,8 +110,7 @@ public class clientHandler implements Runnable {
         List<String> fullCommand = new ArrayList<>(List.of(
             "ffmpeg", "-re", "-i", Paths.get(Config.CONVERTED_VIDEOS_DIR, video).toString(),
             "-an", "-c:v", "copy",
-            "-ffflags", "+nobuffer",
-            "-preset", "ultrafast",
+            "-fflags", "+nobuffer",
             "-f", transportStream, uri
         ));
 
