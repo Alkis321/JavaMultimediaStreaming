@@ -11,8 +11,10 @@ import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import fr.bmartel.speedtest.SpeedTestReport;
 import fr.bmartel.speedtest.SpeedTestSocket;
@@ -24,9 +26,13 @@ import org.slf4j.LoggerFactory;
 
 public class clientMain extends Application {
 
-    private static final String SERVER_ADDRESS = "localhost";
+    private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 8080;
     private static final Logger logger = LoggerFactory.getLogger(clientMain.class);
+    public static final Map<String, Integer> PROTOCOL_PORTS = Map.of(
+    "TCP", 5000,
+    "UDP", 5001,
+    "RTP/UDP", 5002);
 
     //private static final String EXIT_MESSAGE = "exit";
 
@@ -44,6 +50,9 @@ public class clientMain extends Application {
     
     @FXML
     private ComboBox<String> formatComboBox;
+
+    @FXML
+    private ComboBox<String> protocolComboBox;
 
     private PrintWriter out;
     private BufferedReader in;
@@ -72,6 +81,7 @@ public class clientMain extends Application {
 
         setupNetworkConnection();
         initializeFormatComboBox();
+        initializeProtocolComboBox();
     }
 
     private void setupNetworkConnection() {
@@ -138,19 +148,57 @@ public class clientMain extends Application {
         }
     }
 
-    @FXML
-    private void onSendButtonClicked() {
-        String selection = videoComboBox.getValue();
-        String message = (selection != null) ? "SELECT " + selection : inputField.getText();
-        if (message != null && !message.isBlank() && out != null) {
-            out.println(message);
+        @FXML
+        private void onSendButtonClicked() {
+            try {
+                String video = videoComboBox.getValue();
+                String format = formatComboBox.getValue();
+                String protocol = protocolComboBox.getValue();
+
+                if (video != null && out != null && protocol != null) {
+                    String message = "STREAM " + video + " " + format + " " + protocol ;
+                    out.println(message);
+
+                    String uri;
+                    switch (protocol) {
+                        case "TCP":
+                            uri = "tcp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
+                            break;
+                        case "UDP":
+                            uri = "udp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
+                            break;
+                        default:
+                            uri = "rtp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
+                            break;
+                
+                    }
+                    List<String> fullCommand = createFFMpegStreamCommand(uri);
+                    logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
+
+                    new Thread(() -> {
+                        try {
+                            logger.info("Started in thread ffmpeg with command: " + commandToString(fullCommand));
+                            new ProcessBuilder(fullCommand)
+                                .redirectErrorStream(true)
+                                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                                .start();
+
+                            Thread.sleep(500); // Wait for ffmpeg to start
+                        } catch (Exception e) {
+                            logger.error("Error starting ffmpeg: ", e);
+                        }
+
+
+                    });
+                } 
+                sendButton.disableProperty().bind(videoComboBox.valueProperty().isNull());
+            } catch (Exception e) {
+                logger.error("Error on sendButton: " + e.getMessage());
+            }
+            
+
         }
-        sendButton.disableProperty()
-        .bind(videoComboBox.valueProperty().isNull()
-        .and(inputField.textProperty().isEmpty()));
-
-    }
-
+    @FXML
     private void initializeFormatComboBox() {
         formatComboBox.getItems().setAll("mp4", "avi", "mkv");
         formatComboBox.setOnAction(_ -> {
@@ -171,6 +219,24 @@ public class clientMain extends Application {
             }
         });
     }
+
+    @FXML
+    private void initializeProtocolComboBox() {
+        protocolComboBox.getItems().setAll("TCP", "UDP", "RTP/UDP");
+    }
+
+    private List<String> createFFMpegStreamCommand(String uri){
+        List<String> fullCommand = new ArrayList<>(List.of(
+        "ffplay", "-fflags", "+nobuffer", uri
+        ));
+
+        return fullCommand;
+    }
+
+    private String commandToString(List<String> command) {
+        return String.join(" ", command);
+    }
+
     
     @Override
     public void stop() {

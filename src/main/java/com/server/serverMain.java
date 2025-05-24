@@ -8,8 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class serverMain {
-    private static final int PORT = 8080;
-    private static final int THREAD_POOL_SIZE = 10;
     private static final Logger logger = LoggerFactory.getLogger(serverMain.class);
 
     
@@ -19,9 +17,9 @@ public class serverMain {
         //logger.
         
         List<String> videos = videoCatalog.getAvailableVideos();
-        ExecutorService threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            logger.info("Server listening on port " + PORT);
+        ExecutorService threadPool = Executors.newFixedThreadPool(Config.THREAD_POOL_SIZE);
+        try (ServerSocket serverSocket = new ServerSocket(Config.PORT)) {
+            logger.info("Server listening on port " + Config.PORT);
             
             logger.info("AVAILABLE_VIDEOS:" + String.join(",", videos));
             logger.info("Type 'exit' to disconnect.");

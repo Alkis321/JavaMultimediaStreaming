@@ -2,6 +2,10 @@ package com.server;
 
 import java.io.*;
 import java.net.*;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,22 +41,46 @@ public class clientHandler implements Runnable {
                     logger.info("Client reported download speed: " + inputLine.substring(6) + " Mbps");
                     continue; 
                 }
-              /*   if (inputLine.startsWith("STREAM")) {
-                    // STREAM <movie> <resolution> <format> <proto> <clientIP> <port>
-                    String[] p = inputLine.split("\\s+");
-                    String movie = p[1];           // e.g. input_fish
-                    String res   = p[2];           // 480
-                    String fmt   = p[3];           // avi
-                    var proto    = StreamLauncher.Protocol.valueOf(p[4].toUpperCase());
-                    String ip    = p[5];
-                    int port     = Integer.parseInt(p[6]);
-                
-                    String rel   = movie + "-" + res + "p." + fmt;                // input_fish-480p.avi
-                    String full  = Paths.get(Config.CONVERTED_VIDEOS_DIR, rel)
-                                         .toString();                              // ./videos/converted/…
-                
-                    StreamLauncher.launchSender(full, proto, ip, port);
-                } */
+                if (inputLine.startsWith("STREAM")) {
+                    // STREAM <video> <format> <proto>
+                    logger.info("Clien requested {} streaming", inputLine); 
+                    
+                    String[] message = inputLine.split("\\s+");
+                    for (String s : message) {
+                        logger.info("p: " + s);
+                    }
+
+                    String video = message[1];
+                    String protocol = message[3];
+                    String uri;
+                    switch (protocol) {
+                        case "TCP":
+                            uri = "tcp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
+                            break;
+                        case "UDP":
+                            uri = "udp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
+                            break;
+                        default:
+                            uri = "rtp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
+                            break;
+                    }
+                    List<String> fullCommand = createFFMpegStreamCommand(uri, video, protocol);
+                    new Thread(() -> {
+                        try {
+                            logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
+                            new ProcessBuilder(fullCommand)
+                                .redirectErrorStream(true)
+                                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                                .start();
+
+                            Thread.sleep(500); // Wait for ffmpeg to start
+                        } catch (Exception e) {
+                            logger.error("Error starting ffmpeg: ", e);
+                        }
+
+
+                    });
+                }
                 
                 // Echo message back with server acknowledgment
                 out.println("Server received: " + inputLine);
@@ -71,5 +99,27 @@ public class clientHandler implements Runnable {
                 System.err.println("Error closing client socket: " + e.getMessage());
             }
         }
+    }
+
+
+    private List<String> createFFMpegStreamCommand(String uri, String video, String protocol) {
+        String transportStream = "mpegts";
+        if(protocol.equals("RTP/UDP")) {
+            transportStream = "rtp";
+        } 
+        List<String> fullCommand = new ArrayList<>(List.of(
+            "ffmpeg", "-re", "-i", Paths.get(Config.CONVERTED_VIDEOS_DIR, video).toString(),
+            "-an", "-c:v", "copy",
+            "-ffflags", "+nobuffer",
+            "-preset", "ultrafast",
+            "-f", transportStream, uri
+        ));
+
+
+        return fullCommand;
+    }
+
+    private String commandToString(List<String> command) {
+        return String.join(" ", command);
     }
 }

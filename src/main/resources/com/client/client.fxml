@@ -16,13 +16,10 @@
         <TextField fx:id="inputField" promptText="Type your message here"/>
         <ComboBox fx:id="videoComboBox" promptText="Select a video to stream"/>
         <ComboBox fx:id="formatComboBox" promptText="Select a format"/>
-        <!-- Send button (later adapt to send STREAM commands) -->
-        <Button fx:id="sendButton" text="Send to Server" onAction="#onSendButtonClicked"/>
+        <ComboBox fx:id="protocolComboBox" promptText="Select a protocol"/>
+        <Button fx:id="sendButton" text="Stream Video" onAction="#onSendButtonClicked"/>
 
-        <TextArea fx:id="responseArea"
-                  editable="false"
-                  wrapText="true"
-                  prefHeight="200.0"/>
+        <TextArea fx:id="responseArea" editable="false" wrapText="true" prefHeight="200.0"/>
     </children>
 
     <padding>
