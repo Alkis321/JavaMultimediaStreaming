@@ -103,24 +103,45 @@ public class clientHandler implements Runnable {
 
 
     private List<String> createFFMpegStreamCommand(String uri, String video, String protocol) {
-        String transportStream = "mpegts";
-        if(protocol.equals("RTP/UDP")) {
-            transportStream = "rtp";
-        } 
+        String transportStream = "mpegts"; // Default for TCP/UDP direct streaming
         List<String> fullCommand = new ArrayList<>(List.of(
-            "ffmpeg", "-re", "-i", Paths.get(Config.CONVERTED_VIDEOS_DIR, video).toString(),
-            "-c:v", "copy",
-            "-c:a", "aac", "-ac", "2",
-            "-b:a", "96k",
-            "-fflags", "+nobuffer", 
-            "-flush_packets", "1",
-            "-preset", "ultrafast",
-            "-muxdelay", "0.001",
-            "-muxpreload", "0.001",
-            "-tune", "zerolatency",
-            "-f", transportStream, uri
+            "ffmpeg", "-re", "-i", Paths.get(Config.CONVERTED_VIDEOS_DIR, video).toString()
         ));
 
+        if (protocol.equals("RTP/UDP")) {
+            transportStream = "rtp";
+            fullCommand.addAll(List.of(
+                "-c:v", "copy",
+                "-an"
+            ));
+        } else {
+            fullCommand.addAll(List.of(
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-ac", "2",
+                "-b:a", "96k"
+            ));
+
+        }
+
+        // Common flags
+        fullCommand.addAll(List.of(
+            "-fflags", "+nobuffer", 
+            "-flush_packets", "1", // Note: -flush_packets 1 is an output option, ensure it's before output URI
+            "-muxdelay", "0.001",
+            "-muxpreload", "0.001",
+            "-preset", "ultrafast", 
+            "-tune", "zerolatency"
+        ));
+        
+        fullCommand.add("-f");
+        fullCommand.add(transportStream);
+
+        if (protocol.equals("RTP/UDP")) {
+            fullCommand.add("-sdp_file");
+            fullCommand.add(Config.STREAM_SDP_DIR);
+        }
+        fullCommand.add(uri);
 
         return fullCommand;
     }

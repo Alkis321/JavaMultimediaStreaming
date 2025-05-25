@@ -29,10 +29,11 @@ public class clientMain extends Application {
     private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 8080;
     private static final Logger logger = LoggerFactory.getLogger(clientMain.class);
-    public static final Map<String, Integer> PROTOCOL_PORTS = Map.of(
+    private static final Map<String, Integer> PROTOCOL_PORTS = Map.of(
     "TCP", 5000,
     "UDP", 5001,
     "RTP/UDP", 5002);
+    private static final String STREAM_SDP_DIR="./videos/stream.sdp"; 
 
     //private static final String EXIT_MESSAGE = "exit";
 
@@ -172,12 +173,15 @@ public class clientMain extends Application {
                             break;
                 
                     }
-                    List<String> fullCommand = createFFMpegStreamCommand(uri);
+                    List<String> fullCommand = createFFMpegStreamCommand(uri, protocol);
                     logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
 
                     new Thread(() -> {
                         try {
                             logger.info("Started in thread ffmpeg with command: " + commandToString(fullCommand));
+
+                            Thread.sleep(500); // Wait for ffmpeg to start
+
                             new ProcessBuilder(fullCommand)
                                 .redirectErrorStream(true)
                                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
@@ -225,19 +229,26 @@ public class clientMain extends Application {
         protocolComboBox.getItems().setAll("TCP", "UDP", "RTP/UDP");
     }
 
-    private List<String> createFFMpegStreamCommand(String uri){
+    private List<String> createFFMpegStreamCommand(String uri, String protocol){
         List<String> fullCommand = new ArrayList<>(List.of(
          "ffplay", "-autoexit",
         "-fflags", "+nobuffer",
         "-flags",  "low_delay",
         "-probesize", "32",
         "-analyzeduration", "0",
-        "-infbuf", "-framedrop", "-sync", "ext",
-        "-protocol_whitelist", "file,udp,rtp,tcp",
-        "-f", "mpegts",
-        "-i", uri
+        "-framedrop", "-sync", "ext",
+        "-protocol_whitelist", "file,rtp,udp"
         ));
 
+        if (protocol.equals("RTP/UDP")){
+            fullCommand.add("-i");
+            fullCommand.add(STREAM_SDP_DIR);
+
+        }else{
+            fullCommand.add(uri);
+
+        }
+        
         return fullCommand;
     }
 
