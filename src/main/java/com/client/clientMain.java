@@ -188,11 +188,14 @@ public class clientMain extends Application {
 
                     new Thread(() -> {
                         try {
+                            Thread.sleep(1000); // Wait for server to be ready
                             logger.info("Started in thread ffmpeg with command: " + commandToString(fullCommand));
 
                             this.ffplayProcess = new ProcessBuilder(fullCommand)
                                 .redirectErrorStream(true)
+                                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                                 .start();
+                            Thread.sleep(1000); // Wait for ffplay to start
 
                         } catch (Exception e) {
                             logger.error("Error starting ffmpeg: ", e);

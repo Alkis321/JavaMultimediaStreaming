@@ -72,15 +72,11 @@ public class clientHandler implements Runnable {
                     new Thread(() -> {
                         try {
                             logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
-                            Thread.sleep(2000); // Wait for server to be ready
                             this.ffmpegProcess = new ProcessBuilder(fullCommand)
                                 .redirectErrorStream(true)
                                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                                 .start();
 
-                            long sleepTime = protocol.equals("RTP/UDP") ? 1500 : 700; // Longer for SDP
-                            logger.info("Waiting {}ms for ffmpeg to initialize ({})...", sleepTime, protocol);
-                            Thread.sleep(sleepTime);
 
                         } catch (Exception e) {
                             logger.error("Error starting ffmpeg: ", e);
