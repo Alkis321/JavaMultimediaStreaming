@@ -13,7 +13,7 @@ public class clientHandler implements Runnable {
     private static final String EXIT_MESSAGE = "exit";
     private final Socket clientSocket;
     private static final Logger logger = LoggerFactory.getLogger(clientHandler.class);
-    
+    private Process ffmpegProcess;
     public clientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
     }
@@ -31,19 +31,23 @@ public class clientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 logger.info("Received from client: " + inputLine);
+                boolean commandHandled = false;
                 
                 // Check for exit message
                 if (EXIT_MESSAGE.equalsIgnoreCase(inputLine.trim())) {
                     out.println("Goodbye!");
+                    commandHandled = true;
                     break;
                 }
                 if (inputLine.startsWith("SPEED ")) {
                     logger.info("Client reported download speed: " + inputLine.substring(6) + " Mbps");
+                    commandHandled = true;
                     continue; 
                 }
                 if (inputLine.startsWith("STREAM")) {
                     // STREAM <video> <format> <proto>
-                    logger.info("Clien requested {} streaming", inputLine); 
+                    logger.info("Clien requested {} streaming", inputLine);
+                    commandHandled = true;
                     
                     String[] message = inputLine.split("\\s+");
                     for (String s : message) {
@@ -58,7 +62,7 @@ public class clientHandler implements Runnable {
                             uri = "tcp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
                             break;
                         case "UDP":
-                            uri = "udp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
+                            uri = "udp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
                             break;
                         default:
                             uri = "rtp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
@@ -68,12 +72,16 @@ public class clientHandler implements Runnable {
                     new Thread(() -> {
                         try {
                             logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
-                            new ProcessBuilder(fullCommand)
+                            Thread.sleep(2000); // Wait for server to be ready
+                            this.ffmpegProcess = new ProcessBuilder(fullCommand)
                                 .redirectErrorStream(true)
                                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                                 .start();
 
-                            Thread.sleep(500); // Wait for ffmpeg to start
+                            long sleepTime = protocol.equals("RTP/UDP") ? 1500 : 700; // Longer for SDP
+                            logger.info("Waiting {}ms for ffmpeg to initialize ({})...", sleepTime, protocol);
+                            Thread.sleep(sleepTime);
+
                         } catch (Exception e) {
                             logger.error("Error starting ffmpeg: ", e);
                         }
@@ -82,21 +90,23 @@ public class clientHandler implements Runnable {
                     }).start();
                 }
                 
-                // Echo message back with server acknowledgment
-                out.println("Server received: " + inputLine);
-            }
-            
-            //Here streaming capabilities will be handled
-            
+                if (!commandHandled) {
+                    out.println("Server received: " + inputLine);
+                }
+            }            
+            logger.info("Client disconnecting: " + clientSocket.getInetAddress().getHostAddress());
 
-            System.out.println("Client disconnecting: " + clientSocket.getInetAddress().getHostAddress());
         } catch (IOException e) {
-            System.err.println("Error handling client: " + e.getMessage());
+            logger.error("Error handling client: " + e.getMessage());
         } finally {
+            if (this.ffmpegProcess != null && this.ffmpegProcess.isAlive()) {
+                logger.info("Client disconnected, ensuring ffmpeg process is also stopped.");
+                this.ffmpegProcess.destroyForcibly();
+            }
             try {
                 clientSocket.close();
             } catch (IOException e) {
-                System.err.println("Error closing client socket: " + e.getMessage());
+                logger.error("Error closing client socket: " + e.getMessage());
             }
         }
     }
@@ -112,22 +122,26 @@ public class clientHandler implements Runnable {
             transportStream = "rtp";
             fullCommand.addAll(List.of(
                 "-c:v", "copy",
-                "-an"
+                "-ac", "2",
+                "-b:v", "1500k",
+                "-b:a", "96k"
             ));
         } else {
             fullCommand.addAll(List.of(
                 "-c:v", "copy",
                 "-c:a", "aac",
                 "-ac", "2",
-                "-b:a", "96k"
+                "-b:v", "1500k",
+                "-b:a", "96k",
+                "-bsf:v", "h264_mp4toannexb"    
             ));
 
         }
 
         // Common flags
         fullCommand.addAll(List.of(
-            "-fflags", "+nobuffer", 
-            "-flush_packets", "1", // Note: -flush_packets 1 is an output option, ensure it's before output URI
+            "-fflags", "nobuffer", 
+            "-flush_packets", "1",
             "-muxdelay", "0.001",
             "-muxpreload", "0.001",
             "-preset", "ultrafast", 

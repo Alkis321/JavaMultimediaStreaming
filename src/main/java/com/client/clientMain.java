@@ -59,6 +59,7 @@ public class clientMain extends Application {
     private BufferedReader in;
     private Socket socket;
     private String[] vids;
+    private Process ffplayProcess;
 
     public static void main(String[] args) {
         launch(args);
@@ -159,7 +160,16 @@ public class clientMain extends Application {
                 if (video != null && out != null && protocol != null) {
                     String message = "STREAM " + video + " " + format + " " + protocol ;
                     out.println(message);
-
+                    if (this.ffplayProcess != null && this.ffplayProcess.isAlive()) {
+                        logger.info("Stopping previous ffplay process.");
+                        this.ffplayProcess.destroyForcibly(); // More aggressive
+                        try {
+                            this.ffplayProcess.waitFor(); // Wait for it to die
+                        } catch (InterruptedException e) {
+                            logger.warn("Interrupted while waiting for old ffplay to die.");
+                            Thread.currentThread().interrupt();
+                        }
+                    }
                     String uri;
                     switch (protocol) {
                         case "TCP":
@@ -180,14 +190,10 @@ public class clientMain extends Application {
                         try {
                             logger.info("Started in thread ffmpeg with command: " + commandToString(fullCommand));
 
-                            Thread.sleep(500); // Wait for ffmpeg to start
-
-                            new ProcessBuilder(fullCommand)
+                            this.ffplayProcess = new ProcessBuilder(fullCommand)
                                 .redirectErrorStream(true)
-                                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                                 .start();
 
-                            Thread.sleep(500); // Wait for ffmpeg to start
                         } catch (Exception e) {
                             logger.error("Error starting ffmpeg: ", e);
                         }
@@ -232,12 +238,12 @@ public class clientMain extends Application {
     private List<String> createFFMpegStreamCommand(String uri, String protocol){
         List<String> fullCommand = new ArrayList<>(List.of(
          "ffplay", "-autoexit",
-        "-fflags", "+nobuffer",
+        "-fflags", "nobuffer",
         "-flags",  "low_delay",
-        "-probesize", "32",
+        "-probesize", "128",
         "-analyzeduration", "0",
-        "-framedrop", "-sync", "ext",
-        "-protocol_whitelist", "file,rtp,udp"
+        "-sync", "ext",
+        "-protocol_whitelist", "file,rtp,udp,tcp"
         ));
 
         if (protocol.equals("RTP/UDP")){
@@ -259,10 +265,21 @@ public class clientMain extends Application {
     
     @Override
     public void stop() {
+        logger.info("Client UI Stopping");
+        if (this.ffplayProcess != null && this.ffplayProcess.isAlive()) {
+            logger.info("Destroying ffplay process on exit.");
+            this.ffplayProcess.destroyForcibly();
+        }
         try {
-            if (socket != null) socket.close();
+            if (out != null){
+                out.println("exiting");
+            }
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
         } catch (IOException e) {
             logger.error("Error closing socket: " + e.getMessage());
         }
+        logger.info("Client cleanup finished.");
     }
 }
