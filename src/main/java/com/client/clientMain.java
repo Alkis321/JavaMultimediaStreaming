@@ -184,18 +184,16 @@ public class clientMain extends Application {
                 
                     }
                     List<String> fullCommand = createFFMpegStreamCommand(uri, protocol);
-                    logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
 
                     new Thread(() -> {
                         try {
-                            Thread.sleep(1000); // Wait for server to be ready
+                            Thread.sleep(500); // Wait for server to prepare stream
                             logger.info("Started in thread ffmpeg with command: " + commandToString(fullCommand));
 
                             this.ffplayProcess = new ProcessBuilder(fullCommand)
                                 .redirectErrorStream(true)
                                 .redirectOutput(ProcessBuilder.Redirect.INHERIT)
                                 .start();
-                            Thread.sleep(1000); // Wait for ffplay to start
 
                         } catch (Exception e) {
                             logger.error("Error starting ffmpeg: ", e);
@@ -206,7 +204,7 @@ public class clientMain extends Application {
                 } 
                 sendButton.disableProperty().bind(videoComboBox.valueProperty().isNull());
             } catch (Exception e) {
-                logger.error("Error on sendButton: " + e.getMessage());
+                logger.error("Error on sendButton: " , e);
             }
             
 
@@ -239,24 +237,63 @@ public class clientMain extends Application {
     }
 
     private List<String> createFFMpegStreamCommand(String uri, String protocol){
-        List<String> fullCommand = new ArrayList<>(List.of(
-         "ffplay", "-autoexit",
-        "-fflags", "nobuffer+flush_packets",
-        "-flags",  "low_delay",
-        "-probesize", "32768",
-        "-analyzeduration", "1500000",
-        "-strict", "experimental",
-        "-protocol_whitelist", "file,rtp,udp,tcp"
-        ));
+        List<String> fullCommand = new ArrayList<>(List.of("ffplay", "-window_title", "Media_Player", "-autoexit"));
 
-        if (protocol.equals("RTP/UDP")){
-            fullCommand.add("-i");
-            fullCommand.add(STREAM_SDP_DIR);
+        switch (protocol) {
+            case "TCP":
+                fullCommand.addAll(List.of(
+                    "-fflags", "flush_packets+discardcorrupt",
+                    "-flags", "low_delay",
+                    "-probesize", "32768",
+                    "-analyzeduration", "1500000",
+                    "-strict", "experimental",
+                    "-protocol_whitelist", "file,tcp",
+                    "-framedrop",
+                    "-infbuf",
+                    "-fast",
+                    "-genpts",
+                    "-vf", "setpts=PTS-STARTPTS"
+                ));
+                break;
+            case "UDP":
+                fullCommand.addAll(List.of(
+                    "-fflags", "nobuffer",
+                    "-flags", "low_delay"
+                ));
+                break;
+            case "RTP/UDP":
+                fullCommand.addAll(List.of(
+                    "-fflags", "nobuffer+flush_packets+discardcorrupt+genpts",
+                    "-flags", "low_delay",
+                    "-probesize", "32768",
+                    "-analyzeduration", "1500000",
+                    "-strict", "experimental",
+                    "-protocol_whitelist", "file,rtp,udp",
+                    "-framedrop",
+                    "-infbuf",
+                    "-fast"
+                ));
+                break;
+            default:
+                break;
+           
+        }
 
-        }else{
-            fullCommand.add("-i");
-            fullCommand.add(uri);
-
+        switch (protocol) {
+            case "RTP/UDP":
+                fullCommand.add("-i");
+                fullCommand.add(STREAM_SDP_DIR);
+                break;
+            case "TCP":
+                fullCommand.add("-i");
+                fullCommand.add(uri);
+                break;
+            case "UDP":
+                fullCommand.add("-i");
+                fullCommand.add(uri);
+                break;
+            default:
+                break;
         }
         
         return fullCommand;

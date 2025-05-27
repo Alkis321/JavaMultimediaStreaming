@@ -50,10 +50,6 @@ public class clientHandler implements Runnable {
                     commandHandled = true;
                     
                     String[] message = inputLine.split("\\s+");
-                    for (String s : message) {
-                        logger.info("p: " + s);
-                    }
-
                     String video = message[1];
                     String protocol = message[3];
                     String uri;
@@ -62,14 +58,13 @@ public class clientHandler implements Runnable {
                             uri = "tcp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
                             break;
                         case "UDP":
-                            uri = "udp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
+                            uri = "udp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?pkt_size=188";
                             break;
                         default:
-                            uri = "rtp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol) + "?listen";
+                            uri = "rtp://" + Config.ADDRESS + ":" + Config.PROTOCOL_PORTS.get(protocol);
                             break;
                     }
                     List<String> fullCommand = createFFMpegStreamCommand(uri, video, protocol);
-                    Thread.sleep(1000); // Give some time for the client to prepare
                     new Thread(() -> {
                         try {
                             logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
@@ -93,8 +88,8 @@ public class clientHandler implements Runnable {
             }            
             logger.info("Client disconnecting: " + clientSocket.getInetAddress().getHostAddress());
 
-        } catch (IOException | InterruptedException e) {
-            logger.error("Error handling client: " + e.getMessage());
+        } catch (IOException e) {
+            logger.error("Error handling client: ", e);
         } finally {
             if (this.ffmpegProcess != null && this.ffmpegProcess.isAlive()) {
                 logger.info("Client disconnected, ensuring ffmpeg process is also stopped.");
@@ -110,49 +105,65 @@ public class clientHandler implements Runnable {
 
 
     private List<String> createFFMpegStreamCommand(String uri, String video, String protocol) {
-        String transportStream = "mpegts"; // Default for TCP/UDP direct streaming
         List<String> fullCommand = new ArrayList<>(List.of(
             "ffmpeg", "-re", "-i", Paths.get(Config.CONVERTED_VIDEOS_DIR, video).toString()
         ));
 
-        if (protocol.equals("RTP/UDP")) {
-            transportStream = "rtp";
-            fullCommand.addAll(List.of(
-                "-c:v", "copy",
-                "-b:v", "1500k",
-                "-an"
-            ));
-        } else {
-            fullCommand.addAll(List.of(
-                "-c:v", "copy",
-                "-c:a", "aac",
-                "-ac", "2",
-                "-b:v", "1500k",
-                "-b:a", "96k",
-                "-bsf:v", "h264_mp4toannexb"    
-            ));
-
-        }
-
-        // Common flags
-        fullCommand.addAll(List.of(
-            "-fflags", "nobuffer", 
-            "-flush_packets", "1",
-            "-muxdelay", "0.001",
-            "-muxpreload", "0.001",
-            "-preset", "ultrafast", 
-            "-tune", "zerolatency",
-            "-g", "1", 
-            "-keyint_min", "1",
-            "-force_key_frames", "expr:gte(t, 0)"
-        ));
-        
-        fullCommand.add("-f");
-        fullCommand.add(transportStream);
-
-        if (protocol.equals("RTP/UDP")) {
-            fullCommand.add("-sdp_file");
-            fullCommand.add(Config.STREAM_SDP_DIR);
+        switch (protocol) {
+            case "RTP/UDP":
+                fullCommand.addAll(List.of(
+                    "-fflags", "+nobuffer+flush_packets",
+                    "-flags", "global_header",
+                    "-c:v", "libx264",
+                    "-b:v", "3000k",
+                    "-bsf:v", "h264_mp4toannexb",
+                    "-an",
+                    "-maxrate", "3000k",
+                    "-bufsize", "6000k",
+                    "-g", "15",
+                    "-x264-params", "keyint=15:min-keyint=15:scenecut=0:intra-refresh=1",
+                    "-flush_packets", "1",
+                    "-muxdelay", "0",
+                    "-muxpreload", "0",
+                    "-preset", "ultrafast", 
+                    "-tune", "zerolatency",
+                    "-max_delay", "0",
+                    "-payload_type", "96",
+                    "-sdp_file", Config.STREAM_SDP_DIR,
+                    "-f", "rtp"
+                ));
+                break;
+            case "TCP":
+                fullCommand.addAll(List.of(
+                    "-fflags", "+flush_packets",
+                    "-c:v", "copy",
+                    "-c:a", "copy",
+                    "-b:v", "2000k",
+                    "-b:a", "128k",
+                    "-bsf:v", "h264_mp4toannexb",
+                    "-flush_packets", "1",
+                    "-muxdelay", "0",
+                    "-muxpreload", "0",
+                    "-preset", "ultrafast", 
+                    "-tune", "zerolatency",
+                    "-max_delay", "0",
+                    "-f", "mpegts"
+                ));
+                break;
+            case "UDP":
+                fullCommand.addAll(List.of(
+                    "-c:v", "libx264",
+                    "-preset", "ultrafast",
+                    "-tune", "zerolatency",
+                    "-g", "15",
+                    "-keyint_min", "15",
+                    "-sc_threshold", "0",
+                    "-bsf:v", "h264_mp4toannexb",
+                    "-f", "h264"
+                ));
+                break;
+            default:
+                break;
         }
         fullCommand.add(uri);
 

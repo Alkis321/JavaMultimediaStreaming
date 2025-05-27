@@ -8,12 +8,11 @@
   </appender>
   
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <!-- Use absolute path -->
-    <file>/home/alkis_kirikopoulos/JavaMultimediaStreaming/logs/Server.log</file>
+    <file>C:\Users\alkis\OneDrive - University of West Attica\Polumesa\demons\logs\server.log</file>
     <append>true</append>
     <immediateFlush>true</immediateFlush>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>/home/alkis_kirikopoulos/JavaMultimediaStreaming/logs/Server.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <fileNamePattern>C:\Users\alkis\OneDrive - University of West Attica\Polumesa\demons\logs\server.%d{yyyy-MM-dd}.log</fileNamePattern>
       <maxHistory>30</maxHistory>
     </rollingPolicy>
     <encoder>
