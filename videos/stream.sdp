@@ -5,6 +5,6 @@ c=IN IP4 127.0.0.1
 t=0 0
 a=tool:libavformat 61.7.100
 m=video 5002 RTP/AVP 96
-b=AS:3810
+b=AS:1500
 a=rtpmap:96 H264/90000
-a=fmtp:96 packetization-mode=1; sprop-parameter-sets=Z2QAH6zZQFAFuwEQAAA+kAALuADxgxlg,aOvssiw=; profile-level-id=64001F
+a=fmtp:96 packetization-mode=1; sprop-parameter-sets=Z2QAHqzZQXC/llwFqAAAEgAAAwACAAADAPAeLFss,aOvjyyLA; profile-level-id=64001E

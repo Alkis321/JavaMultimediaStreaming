@@ -69,6 +69,7 @@ public class clientHandler implements Runnable {
                             break;
                     }
                     List<String> fullCommand = createFFMpegStreamCommand(uri, video, protocol);
+                    Thread.sleep(1000); // Give some time for the client to prepare
                     new Thread(() -> {
                         try {
                             logger.info("Starting ffmpeg with command: " + commandToString(fullCommand));
@@ -92,7 +93,7 @@ public class clientHandler implements Runnable {
             }            
             logger.info("Client disconnecting: " + clientSocket.getInetAddress().getHostAddress());
 
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             logger.error("Error handling client: " + e.getMessage());
         } finally {
             if (this.ffmpegProcess != null && this.ffmpegProcess.isAlive()) {
@@ -118,9 +119,8 @@ public class clientHandler implements Runnable {
             transportStream = "rtp";
             fullCommand.addAll(List.of(
                 "-c:v", "copy",
-                "-ac", "2",
                 "-b:v", "1500k",
-                "-b:a", "96k"
+                "-an"
             ));
         } else {
             fullCommand.addAll(List.of(
@@ -141,7 +141,10 @@ public class clientHandler implements Runnable {
             "-muxdelay", "0.001",
             "-muxpreload", "0.001",
             "-preset", "ultrafast", 
-            "-tune", "zerolatency"
+            "-tune", "zerolatency",
+            "-g", "1", 
+            "-keyint_min", "1",
+            "-force_key_frames", "expr:gte(t, 0)"
         ));
         
         fullCommand.add("-f");

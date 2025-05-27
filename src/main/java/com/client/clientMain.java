@@ -241,11 +241,11 @@ public class clientMain extends Application {
     private List<String> createFFMpegStreamCommand(String uri, String protocol){
         List<String> fullCommand = new ArrayList<>(List.of(
          "ffplay", "-autoexit",
-        "-fflags", "nobuffer",
+        "-fflags", "nobuffer+flush_packets",
         "-flags",  "low_delay",
-        "-probesize", "128",
-        "-analyzeduration", "0",
-        "-sync", "ext",
+        "-probesize", "32768",
+        "-analyzeduration", "1500000",
+        "-strict", "experimental",
         "-protocol_whitelist", "file,rtp,udp,tcp"
         ));
 
@@ -254,6 +254,7 @@ public class clientMain extends Application {
             fullCommand.add(STREAM_SDP_DIR);
 
         }else{
+            fullCommand.add("-i");
             fullCommand.add(uri);
 
         }
