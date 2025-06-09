@@ -7,6 +7,7 @@ module demons {
     requires jspeedtest;
     requires ch.qos.logback.classic;
     requires ch.qos.logback.core;
+    requires jdk.httpserver;
 
 
     exports com.client;

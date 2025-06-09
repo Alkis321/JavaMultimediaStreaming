@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
 
 public class serverMain {
     private static final Logger logger = LoggerFactory.getLogger(serverMain.class);
@@ -14,10 +17,20 @@ public class serverMain {
     public static void main(String[] args) {
         logger.info("Working dir: " + System.getProperty("user.dir"));
         logger.info("Server is starting");
-        //logger.
         
         List<String> videos = videoCatalog.getAvailableVideos();
         ExecutorService threadPool = Executors.newFixedThreadPool(Config.THREAD_POOL_SIZE);
+
+        try{
+            HttpServer httpServer = HttpServer.create(new InetSocketAddress(Config.HTTP_PORT), 0);
+            httpServer.createContext("/hls-output", new HLSHandler(Config.HLS_OUTPUT_DIR));
+            httpServer.setExecutor(Executors.newFixedThreadPool(8));
+            httpServer.start();
+            logger.info("HTTP server started on port " + Config.HTTP_PORT);
+        } catch(IOException e) {
+            logger.error("Error creating HTTP server: " + e.getMessage());
+            return;
+        }
         try (ServerSocket serverSocket = new ServerSocket(Config.PORT)) {
             logger.info("Server listening on port " + Config.PORT);
             
