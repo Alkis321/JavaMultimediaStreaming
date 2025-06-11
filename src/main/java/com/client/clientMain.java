@@ -41,6 +41,9 @@ public class clientMain extends Application {
     private Button sendButton;
 
     @FXML
+    private Button hlsButton;
+
+    @FXML
     private TextField inputField;
 
     @FXML
@@ -55,6 +58,10 @@ public class clientMain extends Application {
     @FXML
     private ComboBox<String> protocolComboBox;
 
+    @FXML
+    private Label pleaseWaitLabel;
+
+    private Stage primaryStage;
     private PrintWriter out;
     private BufferedReader in;
     private Socket socket;
@@ -67,8 +74,7 @@ public class clientMain extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        logger.info("Yo");
-
+        this.primaryStage = stage;
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/client/client.fxml"));
         loader.setController(this);
         Parent root = loader.load();
@@ -125,7 +131,36 @@ public class clientMain extends Application {
                     boolean firstMessage = true;
                     while ((line = in.readLine()) != null) {
                         String msg = line;
-                        
+
+                        if (msg.startsWith("HLS_READY ")) {
+                            // extract URL
+                            String hlsUrl = msg.substring("HLS_READY ".length()).trim();
+                            pleaseWaitLabel.setVisible(false);
+
+                            // switch to Play scene on JavaFX thread
+                            Platform.runLater(() -> {
+                                try {
+                                    FXMLLoader playLoader = new FXMLLoader(getClass().getResource("/com/client/playScene.fxml"));
+                                    Parent playRoot = playLoader.load();
+                                    PlaySceneController playCtrl = playLoader.getController();
+                                    playCtrl.setHlsUrl(hlsUrl);
+                                    playCtrl.setMainScene(primaryStage.getScene());
+
+                                    Scene playScene = new Scene(playRoot, 800, 500);
+                                    primaryStage.setScene(playScene);
+                                } catch (IOException e) {
+                                    responseArea.appendText("Error loading play scene: " + e.getMessage() + "\n");
+                                }
+                            });
+                            continue;
+                        }
+
+                        if (msg.startsWith("HLS_ERROR ")) {
+                            String errorMsg = msg.substring("HLS_ERROR ".length()).trim();
+                            Platform.runLater(() -> responseArea.appendText("HLS error: " + errorMsg + "\n"));
+                            continue;
+                        }
+
                         if (firstMessage && msg.startsWith("Available Videos:")) {
                             String listPart = msg.substring("Available Videos:".length()).trim();
                             vids = listPart.split("\\s*,\\s*");
@@ -150,65 +185,79 @@ public class clientMain extends Application {
         }
     }
 
-        @FXML
-        private void onSendButtonClicked() {
-            try {
-                String video = videoComboBox.getValue();
-                String format = formatComboBox.getValue();
-                String protocol = protocolComboBox.getValue();
-
-                if (video != null && out != null && protocol != null) {
-                    String message = "STREAM " + video + " " + format + " " + protocol ;
-                    out.println(message);
-                    if (this.ffplayProcess != null && this.ffplayProcess.isAlive()) {
-                        logger.info("Stopping previous ffplay process.");
-                        this.ffplayProcess.destroyForcibly(); // More aggressive
-                        try {
-                            this.ffplayProcess.waitFor(); // Wait for it to die
-                        } catch (InterruptedException e) {
-                            logger.warn("Interrupted while waiting for old ffplay to die.");
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                    String uri;
-                    switch (protocol) {
-                        case "TCP":
-                            uri = "tcp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
-                            break;
-                        case "UDP":
-                            uri = "udp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
-                            break;
-                        default:
-                            uri = "rtp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
-                            break;
-                
-                    }
-                    List<String> fullCommand = createFFMpegStreamCommand(uri, protocol);
-
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(500); // Wait for server to prepare stream
-                            logger.info("Started in thread ffmpeg with command: " + commandToString(fullCommand));
-
-                            this.ffplayProcess = new ProcessBuilder(fullCommand)
-                                .redirectErrorStream(true)
-                                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                                .start();
-
-                        } catch (Exception e) {
-                            logger.error("Error starting ffmpeg: ", e);
-                        }
-
-
-                    }).start();
-                } 
-                sendButton.disableProperty().bind(videoComboBox.valueProperty().isNull());
-            } catch (Exception e) {
-                logger.error("Error on sendButton: " , e);
-            }
-            
-
+    @FXML
+    private void onHlsButtonClicked(){
+        String selectedVideo = videoComboBox.getValue();
+        if (selectedVideo != null) {
+            out.println("HLS " + selectedVideo);  // Send HLS request to server
+            // Disable all other buttons and show a "please wait" message
+            disableUI(true);
+            pleaseWaitLabel.setVisible(true);
+            responseArea.appendText("Requesting HLS stream for: " + selectedVideo + "\n");
+        } else {
+            responseArea.appendText("Please select a video first.\n");
         }
+    }
+
+    @FXML
+    private void onSendButtonClicked() {
+        try {
+            String video = videoComboBox.getValue();
+            String format = formatComboBox.getValue();
+            String protocol = protocolComboBox.getValue();
+
+            if (video != null && out != null && protocol != null) {
+                String message = "STREAM " + video + " " + format + " " + protocol ;
+                out.println(message);
+                if (this.ffplayProcess != null && this.ffplayProcess.isAlive()) {
+                    logger.info("Stopping previous ffplay process.");
+                    this.ffplayProcess.destroyForcibly(); // More aggressive
+                    try {
+                        this.ffplayProcess.waitFor(); // Wait for it to die
+                    } catch (InterruptedException e) {
+                        logger.warn("Interrupted while waiting for old ffplay to die.");
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                String uri;
+                switch (protocol) {
+                    case "TCP":
+                        uri = "tcp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
+                        break;
+                    case "UDP":
+                        uri = "udp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
+                        break;
+                    default:
+                        uri = "rtp://" + SERVER_ADDRESS + ":" + PROTOCOL_PORTS.get(protocol);
+                        break;
+            
+                }
+                List<String> fullCommand = createFFMpegStreamCommand(uri, protocol);
+
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(500); // Wait for server to prepare stream
+                        logger.info("Started in thread ffmpeg with command: " + commandToString(fullCommand));
+
+                        this.ffplayProcess = new ProcessBuilder(fullCommand)
+                            .redirectErrorStream(true)
+                            .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                            .start();
+
+                    } catch (Exception e) {
+                        logger.error("Error starting ffmpeg: ", e);
+                    }
+
+
+                }).start();
+            } 
+            sendButton.disableProperty().bind(videoComboBox.valueProperty().isNull());
+        } catch (Exception e) {
+            logger.error("Error on sendButton: " , e);
+        }
+        
+
+    }
     @FXML
     private void initializeFormatComboBox() {
         formatComboBox.getItems().setAll("mp4", "avi", "mkv");
@@ -301,6 +350,13 @@ public class clientMain extends Application {
 
     private String commandToString(List<String> command) {
         return String.join(" ", command);
+    }
+
+    private void disableUI(boolean disable) {
+        formatComboBox.setDisable(disable);
+        videoComboBox.setDisable(disable);
+        hlsButton.setDisable(disable);
+        inputField.setDisable(disable);
     }
 
     

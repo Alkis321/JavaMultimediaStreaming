@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.web.WebView?>
+
+<VBox xmlns="http://javafx.com/javafx/8.0.171"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.client.PlaySceneController"
+      spacing="10.0"
+      alignment="CENTER"
+      padding="Insets(20)">
+
+    <WebView fx:id="webView" prefHeight="400.0" prefWidth="600.0"/>
+
+    <Button fx:id="playButton" text="Hit me to play" onAction="#onPlayClicked"/>
+
+    <Button fx:id="backButton" text="Back" onAction="#onBackClicked"/>
+</VBox>

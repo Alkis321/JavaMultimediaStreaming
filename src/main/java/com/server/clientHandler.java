@@ -92,6 +92,8 @@ public class clientHandler implements Runnable {
                         out.println("HLS_ERROR Missing video name");
                     } else {
                         String videoName = parts[1];
+                        logger.info("Parts: " + String.join(", ", parts));
+                        logger.info("Client requested HLS for video: " + videoName);
                         // Notify client to wait
                         out.println("HLS_STARTED");
                         try {

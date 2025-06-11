@@ -1,6 +1,7 @@
 module demons {
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.web;
     requires transitive javafx.graphics;
     requires com.github.kokorin.jaffree;
     requires org.slf4j;
@@ -13,5 +14,5 @@ module demons {
     exports com.client;
     
     //exports com.server;
-    opens com.client to javafx.fxml, javafx.graphics;
+    opens com.client to javafx.fxml, javafx.graphics, javafx.web;
 }

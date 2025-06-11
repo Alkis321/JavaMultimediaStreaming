@@ -21,6 +21,11 @@
             <version>24</version>
         </dependency>
         <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>24</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.kokorin.jaffree</groupId>
             <artifactId>jaffree</artifactId>
             <version>2022.06.03</version>

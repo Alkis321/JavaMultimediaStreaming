@@ -1,6 +1,7 @@
 # Maven target folder
 /target/
 /videos/converted
+/hls-output/
 # IDE directories
 .idea/
 *.iml
