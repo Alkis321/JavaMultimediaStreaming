@@ -28,6 +28,7 @@ public class clientMain extends Application {
 
     private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 8080;
+    private static final int HLS_PORT = 9876;
     private static final Logger logger = LoggerFactory.getLogger(clientMain.class);
     private static final Map<String, Integer> PROTOCOL_PORTS = Map.of(
     "TCP", 5000,
@@ -98,6 +99,7 @@ public class clientMain extends Application {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             logger.info("Connected to server1");
+            // new thread to speed test
             new Thread(() -> {
 
                 SpeedTestSocket speedTestSocket = new SpeedTestSocket();
@@ -120,7 +122,7 @@ public class clientMain extends Application {
                     @Override
                     public void onProgress(float percent, SpeedTestReport report) {}
                 });
-                // start a small download test (5 seconds) from a public test server
+                // start a small download test from a public test server
                 speedTestSocket.startDownload("http://speedtest.tele2.net/5MB.zip");
             }).start();
 
@@ -131,35 +133,6 @@ public class clientMain extends Application {
                     boolean firstMessage = true;
                     while ((line = in.readLine()) != null) {
                         String msg = line;
-
-                        if (msg.startsWith("HLS_READY ")) {
-                            // extract URL
-                            String hlsUrl = msg.substring("HLS_READY ".length()).trim();
-                            pleaseWaitLabel.setVisible(false);
-
-                            // switch to Play scene on JavaFX thread
-                            Platform.runLater(() -> {
-                                try {
-                                    FXMLLoader playLoader = new FXMLLoader(getClass().getResource("/com/client/playScene.fxml"));
-                                    Parent playRoot = playLoader.load();
-                                    PlaySceneController playCtrl = playLoader.getController();
-                                    playCtrl.setHlsUrl(hlsUrl);
-                                    playCtrl.setMainScene(primaryStage.getScene());
-
-                                    Scene playScene = new Scene(playRoot, 800, 500);
-                                    primaryStage.setScene(playScene);
-                                } catch (IOException e) {
-                                    responseArea.appendText("Error loading play scene: " + e.getMessage() + "\n");
-                                }
-                            });
-                            continue;
-                        }
-
-                        if (msg.startsWith("HLS_ERROR ")) {
-                            String errorMsg = msg.substring("HLS_ERROR ".length()).trim();
-                            Platform.runLater(() -> responseArea.appendText("HLS error: " + errorMsg + "\n"));
-                            continue;
-                        }
 
                         if (firstMessage && msg.startsWith("Available Videos:")) {
                             String listPart = msg.substring("Available Videos:".length()).trim();
@@ -189,11 +162,25 @@ public class clientMain extends Application {
     private void onHlsButtonClicked(){
         String selectedVideo = videoComboBox.getValue();
         if (selectedVideo != null) {
-            out.println("HLS " + selectedVideo);  // Send HLS request to server
-            // Disable all other buttons and show a "please wait" message
-            disableUI(true);
-            pleaseWaitLabel.setVisible(true);
-            responseArea.appendText("Requesting HLS stream for: " + selectedVideo + "\n");
+            out.println("HLS " + selectedVideo);  // Send HLS ack to server
+            String baseVideo = selectedVideo.split("\\.")[0]; // Remove file extension
+            String hlsUrl = "http://" + SERVER_ADDRESS + ":" + HLS_PORT + "/hls-output/" + baseVideo + "/master.m3u8";
+            logger.info("HLS URL: " + hlsUrl);
+            Platform.runLater(() -> {
+                try {
+                    FXMLLoader playLoader = new FXMLLoader(getClass().getResource("/com/client/playScene.fxml"));
+                    Parent playRoot = playLoader.load();
+                    PlaySceneController playCtrl = playLoader.getController();
+                    playCtrl.setHlsUrl(hlsUrl);
+                    playCtrl.setMainScene(primaryStage.getScene());
+
+                    Scene playScene = new Scene(playRoot, 800, 500);
+                    primaryStage.setScene(playScene);
+                } catch (IOException e) {
+                    responseArea.appendText("Error loading play scene: " + e.getMessage() + "\n");
+                    logger.error("Error loading play scene: ", e);
+                }
+            });
         } else {
             responseArea.appendText("Please select a video first.\n");
         }
@@ -352,12 +339,12 @@ public class clientMain extends Application {
         return String.join(" ", command);
     }
 
-    private void disableUI(boolean disable) {
+/*     private void disableUI(boolean disable) {
         formatComboBox.setDisable(disable);
         videoComboBox.setDisable(disable);
         hlsButton.setDisable(disable);
         inputField.setDisable(disable);
-    }
+    } */
 
     
     @Override

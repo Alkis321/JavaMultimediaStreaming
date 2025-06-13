@@ -13,6 +13,7 @@ module demons {
 
     exports com.client;
     
+    
     //exports com.server;
     opens com.client to javafx.fxml, javafx.graphics, javafx.web;
 }

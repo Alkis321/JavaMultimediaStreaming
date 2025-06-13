@@ -8,11 +8,11 @@
   </appender>
   
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>C:\Users\alkis\OneDrive - University of West Attica\Polumesa\demons\logs\server.log</file>
+    <file>./logs/server.log</file>
     <append>true</append>
     <immediateFlush>true</immediateFlush>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>C:\Users\alkis\OneDrive - University of West Attica\Polumesa\demons\logs\server.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <fileNamePattern>./logs/server.%d{yyyy-MM-dd}.log</fileNamePattern>
       <maxHistory>30</maxHistory>
     </rollingPolicy>
     <encoder>
@@ -29,5 +29,6 @@
   <!-- Set specific loggers to debug level -->
   <logger name="com.server.serverMain" level="debug" />
   <logger name="com.server.clientHandler" level="debug" />
+  <logger name="com.server.HLSHandler" level="debug" />
 
 </configuration>

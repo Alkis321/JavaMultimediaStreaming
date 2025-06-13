@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 //import com.github.kokorin.jaffree.ffmpeg.*;
 import com.github.kokorin.jaffree.ffmpeg.FFmpeg;
 import com.github.kokorin.jaffree.ffmpeg.UrlInput;
@@ -12,6 +15,9 @@ import com.github.kokorin.jaffree.ffmpeg.UrlOutput;
 //import com.github.kokorin.jaffree.ffprobe.*;
 
 public class videoCatalog {
+    private static final Logger logger = LoggerFactory.getLogger(serverMain.class);
+
+    
     public static List<String> getAvailableVideos() {
         //Creation of converted video directory
         new File(Config.CONVERTED_VIDEOS_DIR).mkdirs();
@@ -19,12 +25,15 @@ public class videoCatalog {
         //Scan raw folder and generate variants
         File rawDir = new File(Config.RAW_VIDEOS_DIR);
         for (File rawFile : rawDir.listFiles()) {
-            String movieName = parseMovieName(rawFile); // Extract "Forrest_Gump" from filename
-            generateAllVariants(movieName, rawFile);
+            String movieName = parseMovieName(rawFile); // For "fish-240p.mkv", movieName = "fish"
+            // rawFile is the File object for "fish-240p.mkv"
+            // If you want to extract the original resolution:
+            String fileName = rawFile.getName(); // "fish-240p.mkv"
+            String originalResolution = fileName.replaceAll(".*-(\\d+)p\\..*", "$1"); // "240"
+            generateAllVariants(movieName, rawFile, originalResolution);
         }
-        System.out.println("All variants generated.");
+        logger.info("All variants generated.");
 
-        //Return list of available videos (e.g., "Forrest_Gump:mp4,avi,mkv")
         return listConvertedVideos();
     }
 
@@ -33,11 +42,21 @@ public class videoCatalog {
         return name.split("-")[0];    // "Forrest_Gump"
     }
 
-    private static void generateAllVariants(String movieName, File sourceFile) {
+    private static void generateAllVariants(String movieName, File sourceFile, String originalResolution) {
+        int origRes = Integer.parseInt(originalResolution);
+        
         for (String format : Config.FORMATS) {
             for (String resolution : Config.RESOLUTIONS) {
+                int targetRes = Integer.parseInt(resolution);
+                
+                if (targetRes > origRes) {
+                    logger.debug("Skipping {} in {}p (higher than original {}p)", movieName, resolution, originalResolution);
+                    continue;
+                }
+                
                 File output = new File(Config.CONVERTED_VIDEOS_DIR, String.format("%s-%sp.%s", movieName, resolution, format));
                 if (!output.exists()) {
+                    logger.info("Transcoding {} to {}p {}", movieName, resolution, format);
                     transcodeVideo(sourceFile, output, resolution);
                 }
             }

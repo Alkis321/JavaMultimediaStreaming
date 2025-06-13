@@ -88,44 +88,10 @@ public class clientHandler implements Runnable {
                     // HLS <videoName>
                     commandHandled = true;
                     String[] parts = inputLine.split("\\s+");
-                    if (parts.length < 2) {
-                        out.println("HLS_ERROR Missing video name");
-                    } else {
-                        String videoName = parts[1];
-                        logger.info("Parts: " + String.join(", ", parts));
-                        logger.info("Client requested HLS for video: " + videoName);
-                        // Notify client to wait
-                        out.println("HLS_STARTED");
-                        try {
-                            
-                            // 1) Create output directory: "hls-output/<videoName>"
-                            Path outDir = Paths.get("hls-output", videoName);
-                            Files.createDirectories(outDir);
-
-                            // 2) Run FFmpeg to generate HLS playlist and segments
-                            // Example: ffmpeg -i raw-videos/<videoName>.mp4 -codec: copy -start_number 0 -hls_time 6 -hls_list_size 0 -f hls hls-output/<videoName>/master.m3u8
-                            List<String> cmd = createFFMpegHLSCommand(videoName, outDir.toString());
-                            ProcessBuilder pb = new ProcessBuilder(cmd);
-                            pb.redirectErrorStream(true);
-                            Process hlsProc = pb.start();
-                            int exitCode = hlsProc.waitFor();
-                            if (exitCode == 0) {
-                                // 3) On success, send URL to client
-                                String encodedVideo = URLEncoder.encode(videoName, "UTF-8");
-                                String playlistURL = "http://" + Config.ADDRESS + ":" + Config.HTTP_PORT + "/hls-output/" + encodedVideo + "/master.m3u8";
-                                out.println("HLS_READY " + playlistURL);
-                                logger.info("HLS generation successful for '{}', URL: {}", videoName, playlistURL);
-                            } else {
-                                out.println("HLS_ERROR FFmpeg exited with code " + exitCode);
-                                logger.error("FFmpeg HLS generation failed for '{}' with exit code {}", videoName, exitCode);
-                            }
-                        } catch (Exception e) {
-                            out.println("HLS_ERROR " + e.getMessage());
-                            logger.error("Error during HLS generation for '{}':", videoName, e);
-                        }
-                    }
+                    String videoName = parts[1];
+                    // Just log the request for statistics
+                    logger.info("Client requested HLS for video: {}", videoName);                    
                 }
-
                 if (!commandHandled) {
                     out.println("Server received UNHANDLED: " + inputLine);
                 }
@@ -212,21 +178,6 @@ public class clientHandler implements Runnable {
         fullCommand.add(uri);
 
         return fullCommand;
-    }
-
-    private List<String> createFFMpegHLSCommand(String videoName, String outputDir) {
-        // Example inputs; adjust paths as needed
-        String inputPath = "raw-videos/" + videoName + ".mp4";
-        String outputPath = outputDir + "/master.m3u8";
-        return List.of(
-            "ffmpeg", "-i", inputPath,
-            "-codec:", "copy",
-            "-start_number", "0",
-            "-hls_time", "6",
-            "-hls_list_size", "0",
-            "-f", "hls",
-            outputPath
-        );
     }
 
     private String commandToString(List<String> command) {

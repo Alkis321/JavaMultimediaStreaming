@@ -19,11 +19,24 @@ public class serverMain {
         logger.info("Server is starting");
         
         List<String> videos = videoCatalog.getAvailableVideos();
+        HlsCatalog.makeHlsSegments();
         ExecutorService threadPool = Executors.newFixedThreadPool(Config.THREAD_POOL_SIZE);
 
         try{
             HttpServer httpServer = HttpServer.create(new InetSocketAddress(Config.HTTP_PORT), 0);
             httpServer.createContext("/hls-output", new HLSHandler(Config.HLS_OUTPUT_DIR));
+            // Add this in serverMain.java right after the HLSHandler
+            httpServer.createContext("/test", new HttpHandler() {
+                @Override
+                public void handle(HttpExchange exchange) throws IOException {
+                    System.out.println("TEST HANDLER CALLED!");
+                    String response = "Server is working!";
+                    exchange.sendResponseHeaders(200, response.length());
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(response.getBytes());
+                    }
+                }
+            });
             httpServer.setExecutor(Executors.newFixedThreadPool(8));
             httpServer.start();
             logger.info("HTTP server started on port " + Config.HTTP_PORT);
