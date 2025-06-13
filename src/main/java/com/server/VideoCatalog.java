@@ -12,10 +12,9 @@ import org.slf4j.LoggerFactory;
 import com.github.kokorin.jaffree.ffmpeg.FFmpeg;
 import com.github.kokorin.jaffree.ffmpeg.UrlInput;
 import com.github.kokorin.jaffree.ffmpeg.UrlOutput;
-//import com.github.kokorin.jaffree.ffprobe.*;
 
-public class videoCatalog {
-    private static final Logger logger = LoggerFactory.getLogger(serverMain.class);
+public class VideoCatalog {
+    private static final Logger logger = LoggerFactory.getLogger(VideoCatalog.class);
 
     
     public static List<String> getAvailableVideos() {

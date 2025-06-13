@@ -24,12 +24,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class clientMain extends Application {
+public class ClientMain extends Application {
 
     private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 8080;
     private static final int HLS_PORT = 9876;
-    private static final Logger logger = LoggerFactory.getLogger(clientMain.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClientMain.class);
     private static final Map<String, Integer> PROTOCOL_PORTS = Map.of(
     "TCP", 5000,
     "UDP", 5001,
@@ -43,9 +43,6 @@ public class clientMain extends Application {
 
     @FXML
     private Button hlsButton;
-
-    @FXML
-    private TextField inputField;
 
     @FXML
     private TextArea responseArea;
@@ -152,7 +149,6 @@ public class clientMain extends Application {
 
         } catch (IOException e) {
             Platform.runLater(() -> responseArea.appendText("Connection failed: " + e.getMessage() + "\n"));
-            inputField.setDisable(true);
             videoComboBox.setDisable(true);
             formatComboBox.setDisable(true);
         }
@@ -338,14 +334,6 @@ public class clientMain extends Application {
     private String commandToString(List<String> command) {
         return String.join(" ", command);
     }
-
-/*     private void disableUI(boolean disable) {
-        formatComboBox.setDisable(disable);
-        videoComboBox.setDisable(disable);
-        hlsButton.setDisable(disable);
-        inputField.setDisable(disable);
-    } */
-
     
     @Override
     public void stop() {

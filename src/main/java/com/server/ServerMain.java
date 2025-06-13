@@ -10,21 +10,21 @@ import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 
-public class serverMain {
-    private static final Logger logger = LoggerFactory.getLogger(serverMain.class);
+public class ServerMain {
+    private static final Logger logger = LoggerFactory.getLogger(ServerMain.class);
 
     
     public static void main(String[] args) {
         logger.info("Working dir: " + System.getProperty("user.dir"));
         logger.info("Server is starting");
         
-        List<String> videos = videoCatalog.getAvailableVideos();
+        List<String> videos = VideoCatalog.getAvailableVideos();
         HlsCatalog.makeHlsSegments();
         ExecutorService threadPool = Executors.newFixedThreadPool(Config.THREAD_POOL_SIZE);
 
         try{
             HttpServer httpServer = HttpServer.create(new InetSocketAddress(Config.HTTP_PORT), 0);
-            httpServer.createContext("/hls-output", new HLSHandler(Config.HLS_OUTPUT_DIR));
+            httpServer.createContext("/hls-output", new HlsHandler(Config.HLS_OUTPUT_DIR));
             // Add this in serverMain.java right after the HLSHandler
             httpServer.createContext("/test", new HttpHandler() {
                 @Override
@@ -55,7 +55,7 @@ public class serverMain {
                     logger.info("New client connected: " + clientSocket.getInetAddress().getHostAddress());
                     
                     // Submit client handling task to thread pool
-                    threadPool.submit(new clientHandler(clientSocket));
+                    threadPool.submit(new ClientHandler(clientSocket));
                     
                 } catch (IOException e) {
                     System.err.println("Error accepting client connection: " + e.getMessage());

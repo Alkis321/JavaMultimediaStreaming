@@ -2,8 +2,6 @@ package com.server;
 
 import java.io.*;
 import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,13 +9,13 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class clientHandler implements Runnable {
+public class ClientHandler implements Runnable {
     private static final String EXIT_MESSAGE = "exit";
     private final Socket clientSocket;
-    private static final Logger logger = LoggerFactory.getLogger(clientHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClientHandler.class);
     private Process ffmpegProcess;
 
-    public clientHandler(Socket clientSocket) {
+    public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
     }
     
@@ -29,7 +27,7 @@ public class clientHandler implements Runnable {
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
         ) {
             logger.info("Client connected: {}", clientSocket.getRemoteSocketAddress());
-            out.println("Available Videos: " + String.join(", ",  videoCatalog.listConvertedVideos()));
+            out.println("Available Videos: " + String.join(", ",  VideoCatalog.listConvertedVideos()));
             //out.println("Welcome to the server! Type 'exit' to disconnect.");
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
@@ -89,7 +87,7 @@ public class clientHandler implements Runnable {
                     commandHandled = true;
                     String[] parts = inputLine.split("\\s+");
                     String videoName = parts[1];
-                    // Just log the request for statistics
+                    //log the request for statistics
                     logger.info("Client requested HLS for video: {}", videoName);                    
                 }
                 if (!commandHandled) {
@@ -144,21 +142,39 @@ public class clientHandler implements Runnable {
                 ));
                 break;
             case "TCP":
-                fullCommand.addAll(List.of(
-                    "-fflags", "+flush_packets",
-                    "-c:v", "copy",
-                    "-c:a", "copy",
-                    "-b:v", "2000k",
-                    "-b:a", "128k",
-                    "-bsf:v", "h264_mp4toannexb",
-                    "-flush_packets", "1",
-                    "-muxdelay", "0",
-                    "-muxpreload", "0",
-                    "-preset", "ultrafast", 
-                    "-tune", "zerolatency",
-                    "-max_delay", "0",
-                    "-f", "mpegts"
-                ));
+                if (Paths.get(Config.CONVERTED_VIDEOS_DIR, video).toString().toLowerCase().endsWith(".avi")) {
+                    logger.info("Using special handling for AVI file: {}", video);
+                    //special handling for AVI files
+                    fullCommand.addAll(List.of(
+                        "-fflags", "+genpts",
+                        "-c:v", "libx264",
+                        "-preset", "ultrafast",
+                        "-tune", "zerolatency",
+                        "-c:a", "aac",
+                        "-b:v", "2000k",
+                        "-b:a", "128k",
+                        "-flush_packets", "1",
+                        "-muxdelay", "0",
+                        "-muxpreload", "0",
+                        "-f", "mpegts"
+                    ));
+                } else {
+                    fullCommand.addAll(List.of(
+                        "-fflags", "+flush_packets",
+                        "-c:v", "copy",
+                        "-c:a", "copy",
+                        "-b:v", "2000k",
+                        "-b:a", "128k",
+                        "-bsf:v", "h264_mp4toannexb",
+                        "-flush_packets", "1",
+                        "-muxdelay", "0",
+                        "-muxpreload", "0",
+                        "-preset", "ultrafast", 
+                        "-tune", "zerolatency",
+                        "-max_delay", "0",
+                        "-f", "mpegts"
+                    ));
+                }
                 break;
             case "UDP":
                 fullCommand.addAll(List.of(

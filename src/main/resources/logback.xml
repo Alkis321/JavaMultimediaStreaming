@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+  <!-- Console appender -->
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
   </appender>
   
-  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+  <appender name="SERVER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>./logs/server.log</file>
     <append>true</append>
     <immediateFlush>true</immediateFlush>
@@ -20,15 +21,45 @@
     </encoder>
   </appender>
   
-  <!-- Route all loggers to both console and file -->
+  <appender name="CLIENT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>./logs/client.log</file>
+    <append>true</append>
+    <immediateFlush>true</immediateFlush>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>./logs/client.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  
   <root level="info">
     <appender-ref ref="CONSOLE" />
-    <appender-ref ref="FILE" />
   </root>
   
-  <!-- Set specific loggers to debug level -->
-  <logger name="com.server.serverMain" level="debug" />
-  <logger name="com.server.clientHandler" level="debug" />
-  <logger name="com.server.HLSHandler" level="debug" />
+  <!-- Server-specific loggers -->
+  <logger name="com.server.ServerMain" level="debug" additivity="false">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="SERVER_FILE" />
+  </logger>
+  
+  <logger name="com.server.ClientHandler" level="debug" additivity="false">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="SERVER_FILE" />
+  </logger>
+  
+  <logger name="com.server.HlsHandler" level="debug" additivity="false">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="SERVER_FILE" />
+  </logger>
+  
+  <!-- Client-specific loggers -->
+  <logger name="com.server.ClientMain" level="debug" additivity="false">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="CLIENT_FILE" />
+  </logger>
+  
+
 
 </configuration>

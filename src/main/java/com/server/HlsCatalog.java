@@ -18,20 +18,20 @@ public class HlsCatalog {
     public static void makeHlsSegments() {
         logger.info("Starting HLS segment generation for all videos");
         
-        // Create output directory if it doesn't exist
+        //create output directory if it doesn't exist
         File hlsOutputDir = new File(Config.HLS_OUTPUT_DIR);
         if (!hlsOutputDir.exists()) {
             hlsOutputDir.mkdirs();
         }
         
-        // Get all video files
+        //fetch all video files
         File rawDir = new File(Config.RAW_VIDEOS_DIR);
         if (!rawDir.exists()) {
             logger.error("Raw videos directory does not exist: {}", Config.RAW_VIDEOS_DIR);
             return;
         }
         
-        // Find all video files with extensions from Config.FORMATS
+        //find all video files 
         File[] videoFiles = rawDir.listFiles((dir, name) -> {
             for (String format : Config.FORMATS) {
                 if (name.toLowerCase().endsWith("." + format.toLowerCase())) {
@@ -46,7 +46,6 @@ public class HlsCatalog {
             return;
         }
         
-        // Process each video sequentially
         for (File videoFile : videoFiles) {
             processVideo(videoFile);
         }
@@ -87,25 +86,23 @@ public class HlsCatalog {
                 }
             }
             
-            // Create output directory
+            //create output directory
             Path outputDir = Paths.get(Config.HLS_OUTPUT_DIR, baseName);
             Files.createDirectories(outputDir);
             
-            // Generate HLS for each resolution
+            //generate HLS for each resolution
             List<String> playlistPaths = new ArrayList<>();
             
             for (String resolution : targetResolutions) {
                 String resDir = outputDir.resolve(resolution + "p").toString();
                 Files.createDirectories(Paths.get(resDir));
                 
-                // Generate HLS for this resolution
                 String playlistPath = generateHls(videoFile.getPath(), resDir, resolution);
                 if (playlistPath != null) {
                     playlistPaths.add(playlistPath);
                 }
             }
             
-            // Create master playlist
             if (!playlistPaths.isEmpty()) {
                 createMasterPlaylist(outputDir.toString(), playlistPaths, targetResolutions);
                 logger.info("HLS generation complete for: {}", baseName);
@@ -162,7 +159,7 @@ public class HlsCatalog {
             writer.write("#EXTM3U\n");
             writer.write("#EXT-X-VERSION:3\n");
             
-            // Add each variant
+            //manual creation
             for (int i = 0; i < playlistPaths.size(); i++) {
                 int height = Integer.parseInt(resolutions.get(i));
                 int width = height * 16 / 9;
