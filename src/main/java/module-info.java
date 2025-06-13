@@ -9,6 +9,8 @@ module demons {
     requires ch.qos.logback.classic;
     requires ch.qos.logback.core;
     requires jdk.httpserver;
+    requires java.desktop;
+    requires java.logging;
 
 
     exports com.client;

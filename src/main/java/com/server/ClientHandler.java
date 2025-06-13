@@ -53,6 +53,8 @@ public class ClientHandler implements Runnable {
                     String[] message = inputLine.split("\\s+");
                     String video = message[1];
                     String protocol = message[3];
+                    StatisticsManager.getInstance().recordVideoRequest(video);
+                    StatisticsManager.getInstance().recordProtocolUsage(protocol);
                     String uri;
                     switch (protocol) {
                         case "TCP":

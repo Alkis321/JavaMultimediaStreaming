@@ -32,7 +32,7 @@ public class HlsCatalog {
         }
         
         //find all video files 
-        File[] videoFiles = rawDir.listFiles((dir, name) -> {
+        File[] videoFiles = rawDir.listFiles((_, name) -> {
             for (String format : Config.FORMATS) {
                 if (name.toLowerCase().endsWith("." + format.toLowerCase())) {
                     return true;

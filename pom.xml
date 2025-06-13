@@ -45,6 +45,11 @@
             <artifactId>logback-classic</artifactId>
             <version>1.4.11</version>
         </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-swing</artifactId>
+            <version>24</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

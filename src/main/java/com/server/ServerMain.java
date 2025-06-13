@@ -2,16 +2,17 @@ package com.server;
 
 import java.io.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.sun.net.httpserver.HttpServer;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpExchange;
+
 
 public class ServerMain {
     private static final Logger logger = LoggerFactory.getLogger(ServerMain.class);
+    private static ServerGUI gui;
 
     
     public static void main(String[] args) {
@@ -22,29 +23,33 @@ public class ServerMain {
         HlsCatalog.makeHlsSegments();
         ExecutorService threadPool = Executors.newFixedThreadPool(Config.THREAD_POOL_SIZE);
 
+        gui = new ServerGUI(threadPool);
+        gui.setVisible(true);
+        gui.addLog("Server initialized at: "+ new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new java.util.Date()) );
+
+        HttpServer httpServer = null;
+
         try{
-            HttpServer httpServer = HttpServer.create(new InetSocketAddress(Config.HTTP_PORT), 0);
+            httpServer = HttpServer.create(new InetSocketAddress(Config.HTTP_PORT), 0);
             httpServer.createContext("/hls-output", new HlsHandler(Config.HLS_OUTPUT_DIR));
-            // Add this in serverMain.java right after the HLSHandler
-            httpServer.createContext("/test", new HttpHandler() {
-                @Override
-                public void handle(HttpExchange exchange) throws IOException {
-                    System.out.println("TEST HANDLER CALLED!");
-                    String response = "Server is working!";
-                    exchange.sendResponseHeaders(200, response.length());
-                    try (OutputStream os = exchange.getResponseBody()) {
-                        os.write(response.getBytes());
-                    }
-                }
-            });
             httpServer.setExecutor(Executors.newFixedThreadPool(8));
             httpServer.start();
+            gui.updateStatus(true);
+            gui.addLog("HTTP server started on port " + Config.HTTP_PORT);
             logger.info("HTTP server started on port " + Config.HTTP_PORT);
+
+            gui.setHttpServer(httpServer);
+
         } catch(IOException e) {
+            gui.updateStatus(false);
             logger.error("Error creating HTTP server: " + e.getMessage());
+            gui.addLog("Error creating HTTP server: " + e.getMessage());
             return;
         }
+
+
         try (ServerSocket serverSocket = new ServerSocket(Config.PORT)) {
+            gui.setServerSocket(serverSocket);
             logger.info("Server listening on port " + Config.PORT);
             
             logger.info("AVAILABLE_VIDEOS:" + String.join(",", videos));
@@ -53,6 +58,7 @@ public class ServerMain {
                 try {
                     Socket clientSocket = serverSocket.accept();
                     logger.info("New client connected: " + clientSocket.getInetAddress().getHostAddress());
+                    gui.addLog("New client connected: " + clientSocket.getInetAddress().getHostAddress());
                     
                     // Submit client handling task to thread pool
                     threadPool.submit(new ClientHandler(clientSocket));
@@ -73,6 +79,8 @@ public class ServerMain {
                 threadPool.shutdownNow();
             }
             logger.info("Server stopped");
+            gui.addLog("Server stopped");
+            gui.updateStatus(false);
         }
     }
 }
