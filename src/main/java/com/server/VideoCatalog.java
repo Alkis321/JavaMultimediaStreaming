@@ -18,17 +18,16 @@ public class VideoCatalog {
 
     
     public static List<String> getAvailableVideos() {
-        //Creation of converted video directory
+        //creation of converted video directory
         new File(Config.CONVERTED_VIDEOS_DIR).mkdirs();
 
-        //Scan raw folder and generate variants
+        //scan raw folder and generate variants
         File rawDir = new File(Config.RAW_VIDEOS_DIR);
         for (File rawFile : rawDir.listFiles()) {
-            String movieName = parseMovieName(rawFile); // For "fish-240p.mkv", movieName = "fish"
-            // rawFile is the File object for "fish-240p.mkv"
-            // If you want to extract the original resolution:
-            String fileName = rawFile.getName(); // "fish-240p.mkv"
-            String originalResolution = fileName.replaceAll(".*-(\\d+)p\\..*", "$1"); // "240"
+            String movieName = parseMovieName(rawFile); 
+            //extract the original resolution:
+            String fileName = rawFile.getName(); // fish-240p.mkv
+            String originalResolution = fileName.replaceAll(".*-(\\d+)p\\..*", "$1"); // 240
             generateAllVariants(movieName, rawFile, originalResolution);
         }
         logger.info("All variants generated.");
@@ -37,8 +36,8 @@ public class VideoCatalog {
     }
 
     private static String parseMovieName(File file) {
-        String name = file.getName(); // "Forrest_Gump-720p.mkv"
-        return name.split("-")[0];    // "Forrest_Gump"
+        String name = file.getName(); // Forrest_Gump-720p.mkv
+        return name.split("-")[0];    // Forrest_Gump
     }
 
     private static void generateAllVariants(String movieName, File sourceFile, String originalResolution) {

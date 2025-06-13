@@ -78,7 +78,6 @@ public class HlsCatalog {
                 sourceHeight = 240; // Default to lowest resolution
             }
             
-            // Find valid resolutions (current and lower)
             List<String> targetResolutions = new ArrayList<>();
             for (String res : Config.RESOLUTIONS) {
                 if (Integer.parseInt(res) <= sourceHeight) {

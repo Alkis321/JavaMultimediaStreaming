@@ -30,11 +30,9 @@ public class PlaySceneController {
 
     @FXML
     private void initialize() {
-        // You could disable playButton until url is set,
-        // but since setHlsUrl runs before show, it's fine.
+       
     }
 
-    /** Bound to the Play button’s onAction in playScene.fxml */
     @FXML
     private void onPlayClicked() {
         if (hlsUrl == null || hlsUrl.isEmpty()) {
@@ -45,7 +43,6 @@ public class PlaySceneController {
 
     @FXML
     private void onBackClicked() {
-        // Find the current stage and set the original scene
         Stage stage = (Stage) backButton.getScene().getWindow();
         if (mainScene != null) {
             stage.setScene(mainScene);

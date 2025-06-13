@@ -38,6 +38,7 @@
   
   <root level="info">
     <appender-ref ref="CONSOLE" />
+    <appender-ref ref="SERVER_FILE" />
   </root>
   
   <!-- Server-specific loggers -->

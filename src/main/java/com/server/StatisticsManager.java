@@ -5,20 +5,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class StatisticsManager {
-    // Singleton instance
+    //singleton instance
     private static StatisticsManager instance;
     
-    // Thread-safe maps to store statistics
     private final ConcurrentHashMap<String, Integer> videoRequests;
     private final ConcurrentHashMap<String, Integer> protocolUsage;
     
-    // Private constructor (singleton pattern)
     private StatisticsManager() {
         videoRequests = new ConcurrentHashMap<>();
         protocolUsage = new ConcurrentHashMap<>();
     }
     
-    // Thread-safe getInstance method
     public static synchronized StatisticsManager getInstance() {
         if (instance == null) {
             instance = new StatisticsManager();
@@ -26,7 +23,6 @@ public class StatisticsManager {
         return instance;
     }
     
-    // Record video request
     public void recordVideoRequest(String videoName) {
         videoRequests.compute(videoName, (_, count) -> (count == null) ? 1 : count + 1);
     }
