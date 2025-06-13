@@ -90,7 +90,9 @@ public class ClientHandler implements Runnable {
                     String[] parts = inputLine.split("\\s+");
                     String videoName = parts[1];
                     //log the request for statistics
-                    logger.info("Client requested HLS for video: {}", videoName);                    
+                    logger.info("Client requested HLS for video: {}", videoName);
+                    StatisticsManager.getInstance().recordVideoRequest(videoName);
+                    StatisticsManager.getInstance().recordProtocolUsage("HLS");
                 }
                 if (!commandHandled) {
                     out.println("Server received UNHANDLED: " + inputLine);

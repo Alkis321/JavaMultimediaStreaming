@@ -62,7 +62,7 @@ public class HlsCatalog {
 
         if (Files.exists(outDir) && Files.exists(masterPlaylist)) {
             logger.info("Skipping HLS generation for {} - already exists", baseName);
-            return; // Skip processing - already done in a previous run
+            return; // Skip processing, already done in a previous run
         }
 
         logger.info("Processing video for HLS: {}", videoName);
@@ -138,6 +138,8 @@ public class HlsCatalog {
         
         logger.info("Running ffmpeg for {}p HLS generation", resolution);
         ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.redirectErrorStream(true);
+        pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
         Process process = pb.start();
         
         int exitCode = process.waitFor();

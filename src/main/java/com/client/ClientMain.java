@@ -78,7 +78,7 @@ public class ClientMain extends Application {
         Parent root = loader.load();
 
         Scene scene = new Scene(root, 600, 300);
-        stage.setTitle("Module Complaint Client");
+        stage.setTitle("Streaming Media Client");
         stage.setScene(scene);
         stage.show();
 
